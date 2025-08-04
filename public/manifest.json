@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "version": "1.0.0",
+  "name": "LeetMate",
+  "description": "Chrome extension that provides AI-driven hints on leetcode",
+  "action": {
+    "default_popup": "index.html"
+  },
+  "permissions": ["scripting", "activeTab", "storage", "tabs"],
+  "host_permissions": ["https://leetcode.com/problems/*"],
+  "icons": {
+    "32": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://leetcode.com/problems/*"],
+      "js": ["content.js"],
+      "type": "module"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-fallback.js"],
+      "type": "module"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  }
+}
