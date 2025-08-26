@@ -17,7 +17,6 @@ export default defineConfig({
           __dirname,
           "src/content/content-fallback.js"
         ),
-        background: resolve(__dirname, "src/background.js"),
       },
       output: {
         entryFileNames: "[name].js",
@@ -25,7 +24,6 @@ export default defineConfig({
         assetFileNames: "assets/[name]-[hash].[ext]",
         manualChunks: {
           react: ['react', 'react-dom'],
-          mui: ['@mui/material', '@mui/icons-material']
         }
       },
     },
