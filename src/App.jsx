@@ -15,8 +15,6 @@ function App() {
     hint1: "loading...",
     hint2: "loading...",
   });
-  const [lang, setLang] = useState("C++");
-  const [userCode, setUserCode] = useState("");
   const [isCopied, setIsCopied] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   useEffect(() => {
@@ -74,35 +72,44 @@ function App() {
   };
   //function to fetch user code from content.js
   const fetchUserCode = () => {
+  return new Promise((resolve, reject) => {
     chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
       if (!tab.url.includes("leetcode.com/problems")) {
         console.log("Not a LeetCode tab");
+        reject(new Error("Not a LeetCode tab"));
         return;
       }
 
       chrome.tabs.sendMessage(tab.id, { type: "GET_USER_CODE" }, (response) => {
         if (chrome.runtime.lastError) {
           console.log("Message failed:", chrome.runtime.lastError.message);
+          reject(new Error(chrome.runtime.lastError.message));
           return;
         }
         if (!response || !response.userObj) {
           console.log("No response");
+          reject(new Error("No response"));
           return;
         }
         console.log(response.userObj);
-        setLang(response.userObj.lang);
-        setUserCode(response.userObj.extractedCode);
+        
+        // Resolve with the actual values
+        resolve({
+          lang: response.userObj.lang,
+          userCode: response.userObj.extractedCode
+        });
       });
     });
-  };
+  });
+};
   //funtion to send req to content for injecting ai genearted source code
   const handleGetCode = async () => {
   try {
     setIsFetching(true);
     setIsCopied(false);
     
-    fetchUserCode();
-    const aiCode = await fetchCode(problem, userCode, lang, apiKey);
+    const { lang: currentLang, userCode: currentUserCode } = await fetchUserCode();
+    const aiCode = await fetchCode(problem, currentUserCode, currentLang, apiKey);
     console.log(aiCode);
     
     await navigator.clipboard.writeText(aiCode);
