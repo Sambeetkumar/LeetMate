@@ -17,12 +17,14 @@
     {
       "matches": ["https://leetcode.com/problems/*"],
       "js": ["content.js"],
-      "type": "module"
+      "type": "module",
+      "run_at": "document_idle"
     },
     {
       "matches": ["<all_urls>"],
       "js": ["content-fallback.js"],
-      "type": "module"
+      "type": "module",
+      "run_at": "document_idle"
     }
   ],
   "background": {

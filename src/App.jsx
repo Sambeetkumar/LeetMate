@@ -4,7 +4,7 @@ import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import Typography from "@mui/material/Typography";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import { fetchHints } from "./utils/api";
+import { fetchHints, fetchCode } from "./utils/api";
 function App() {
   const [apiKey, setApiKey] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -15,6 +15,10 @@ function App() {
     hint1: "loading...",
     hint2: "loading...",
   });
+  const [lang, setLang] = useState("C++");
+  const [userCode, setUserCode] = useState("");
+  const [isCopied, setIsCopied] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
   useEffect(() => {
     const fetchApiKey = async () => {
       const result = await chrome.storage.sync.get("apiKey");
@@ -68,6 +72,57 @@ function App() {
       });
     });
   };
+  //function to fetch user code from content.js
+  const fetchUserCode = () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+      if (!tab.url.includes("leetcode.com/problems")) {
+        console.log("Not a LeetCode tab");
+        return;
+      }
+
+      chrome.tabs.sendMessage(tab.id, { type: "GET_USER_CODE" }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.log("Message failed:", chrome.runtime.lastError.message);
+          return;
+        }
+        if (!response || !response.userObj) {
+          console.log("No response");
+          return;
+        }
+        console.log(response.userObj);
+        setLang(response.userObj.lang);
+        setUserCode(response.userObj.extractedCode);
+      });
+    });
+  };
+  //funtion to send req to content for injecting ai genearted source code
+  const handleGetCode = async () => {
+  try {
+    setIsFetching(true);
+    setIsCopied(false);
+    
+    fetchUserCode();
+    const aiCode = await fetchCode(problem, userCode, lang, apiKey);
+    console.log(aiCode);
+    
+    await navigator.clipboard.writeText(aiCode);
+    console.log("copied to clipboard");
+    
+    // Keep both true briefly, then transition
+    setIsCopied(true);
+    // Don't set isFetching to false immediately
+    
+    setTimeout(() => {
+      setIsCopied(false);
+      setIsFetching(false); // Reset both after 2s
+    }, 2000);
+    
+  } catch (err) {
+    console.log(err);
+    setIsFetching(false);
+    setIsCopied(false);
+  }
+};
   //function to save api key
   const handleSaveApiKey = async () => {
     const inputElement = document.getElementById("apiKeyInput"); // Access directly or use useRef
@@ -126,14 +181,21 @@ function App() {
                 <Typography>{hints.hint2}</Typography>
               </AccordionDetails>
             </Accordion>
-            <button className="text-white font-bold py-2 px-4 rounded transition duration-200">
-              Inject code
+            <button
+              onClick={handleGetCode}
+              className="text-white font-bold py-2 px-4 rounded transition duration-200"
+            >
+              {isFetching && isCopied
+                ? "Copied ✅"
+                : isFetching
+                ? "Fetching 🕙"
+                : "Get code 💯"}
             </button>
             <button
               onClick={handleClearApiKey}
               className="text-white font-bold py-2 px-4 rounded transition duration-200"
             >
-              Clear API Key
+              Clear API Key 🔑
             </button>
           </div>
         </div>
