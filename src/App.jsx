@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from "react";
-import Accordion from "@mui/material/Accordion";
-import AccordionSummary from "@mui/material/AccordionSummary";
-import AccordionDetails from "@mui/material/AccordionDetails";
-import Typography from "@mui/material/Typography";
-import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+import Accordion from "./components/Accordion";
 import { fetchHints, fetchCode } from "./utils/api";
 function App() {
   const [apiKey, setApiKey] = useState(null);
@@ -17,6 +13,16 @@ function App() {
   });
   const [isCopied, setIsCopied] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
+  const hintzArr = [
+    {
+      title: "Hint 1",
+      content: hints.hint1,
+    },
+    {
+      title: "Hint 2",
+      content: hints.hint2,
+    },
+  ];
   useEffect(() => {
     const fetchApiKey = async () => {
       const result = await chrome.storage.sync.get("apiKey");
@@ -72,64 +78,73 @@ function App() {
   };
   //function to fetch user code from content.js
   const fetchUserCode = () => {
-  return new Promise((resolve, reject) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-      if (!tab.url.includes("leetcode.com/problems")) {
-        console.log("Not a LeetCode tab");
-        reject(new Error("Not a LeetCode tab"));
-        return;
-      }
+    return new Promise((resolve, reject) => {
+      chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+        if (!tab.url.includes("leetcode.com/problems")) {
+          console.log("Not a LeetCode tab");
+          reject(new Error("Not a LeetCode tab"));
+          return;
+        }
 
-      chrome.tabs.sendMessage(tab.id, { type: "GET_USER_CODE" }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.log("Message failed:", chrome.runtime.lastError.message);
-          reject(new Error(chrome.runtime.lastError.message));
-          return;
-        }
-        if (!response || !response.userObj) {
-          console.log("No response");
-          reject(new Error("No response"));
-          return;
-        }
-        console.log(response.userObj);
-        
-        // Resolve with the actual values
-        resolve({
-          lang: response.userObj.lang,
-          userCode: response.userObj.extractedCode
-        });
+        chrome.tabs.sendMessage(
+          tab.id,
+          { type: "GET_USER_CODE" },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              console.log("Message failed:", chrome.runtime.lastError.message);
+              reject(new Error(chrome.runtime.lastError.message));
+              return;
+            }
+            if (!response || !response.userObj) {
+              console.log("No response");
+              reject(new Error("No response"));
+              return;
+            }
+            console.log(response.userObj);
+
+            // Resolve with the actual values
+            resolve({
+              lang: response.userObj.lang,
+              userCode: response.userObj.extractedCode,
+            });
+          }
+        );
       });
     });
-  });
-};
+  };
   //funtion to send req to content for injecting ai genearted source code
   const handleGetCode = async () => {
-  try {
-    setIsFetching(true);
-    setIsCopied(false);
-    
-    const { lang: currentLang, userCode: currentUserCode } = await fetchUserCode();
-    const aiCode = await fetchCode(problem, currentUserCode, currentLang, apiKey);
-    console.log(aiCode);
-    
-    await navigator.clipboard.writeText(aiCode);
-    console.log("copied to clipboard");
-    
-    // Keep both true briefly, then transition
-    setIsCopied(true);
-    // Don't set isFetching to false immediately
-    
-    setTimeout(() => {
+    try {
+      setIsFetching(true);
       setIsCopied(false);
-      setIsFetching(false); // Reset both after 2s
-    }, 2000);
-    
-  } catch (err) {
-    console.log(err);
-    setIsFetching(false);
-    setIsCopied(false);
-  }
-};
+
+      const { lang: currentLang, userCode: currentUserCode } =
+        await fetchUserCode();
+      const aiCode = await fetchCode(
+        problem,
+        currentUserCode,
+        currentLang,
+        apiKey
+      );
+      console.log(aiCode);
+
+      await navigator.clipboard.writeText(aiCode);
+      console.log("copied to clipboard");
+
+      // Keep both true briefly, then transition
+      setIsCopied(true);
+      // Don't set isFetching to false immediately
+
+      setTimeout(() => {
+        setIsCopied(false);
+        setIsFetching(false); // Reset both after 2s
+      }, 2000);
+    } catch (err) {
+      console.log(err);
+      setIsFetching(false);
+      setIsCopied(false);
+    }
+  };
   //function to save api key
   const handleSaveApiKey = async () => {
     const inputElement = document.getElementById("apiKeyInput"); // Access directly or use useRef
@@ -164,33 +179,11 @@ function App() {
           <h1 className="text-xl font-bold text-blue-600 mb-3">LeetMate</h1>
           <p className="text-sm mb-4">Welcome! Your API key is set.</p>
           <div className="flex flex-col space-y-4 justify-around">
-            <Accordion>
-              <AccordionSummary
-                expandIcon={<ArrowDropDownIcon />}
-                aria-controls="panel2-content"
-                id="panel2-header"
-              >
-                <Typography component="span">Hint 1</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Typography>{hints.hint1}</Typography>
-              </AccordionDetails>
-            </Accordion>
-            <Accordion>
-              <AccordionSummary
-                expandIcon={<ArrowDropDownIcon />}
-                aria-controls="panel2-content"
-                id="panel2-header"
-              >
-                <Typography component="span">Hint 2</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Typography>{hints.hint2}</Typography>
-              </AccordionDetails>
-            </Accordion>
+            {/*custom Accordion*/}
+            <Accordion items={hintzArr} allowMultiple={true} />
             <button
               onClick={handleGetCode}
-              className="text-white font-bold py-2 px-4 rounded transition duration-200"
+              className="btn text-white font-bold py-2 px-4 rounded transition duration-200"
             >
               {isFetching && isCopied
                 ? "Copied ✅"
@@ -200,7 +193,7 @@ function App() {
             </button>
             <button
               onClick={handleClearApiKey}
-              className="text-white font-bold py-2 px-4 rounded transition duration-200"
+              className="btn text-white font-bold py-2 px-4 rounded transition duration-200"
             >
               Clear API Key 🔑
             </button>
@@ -212,9 +205,21 @@ function App() {
           <h2 className="text-lg font-bold text-blue-600 mb-3">
             Setup Your API Key
           </h2>
-          <p className="text-sm mb-4">
+          <p className="text-sm mb-1">
             Please enter your Gemini API Key to use the extension.
           </p>
+          <div className="text-sm text-gray-600">
+            Don't have an API key?{" "}
+            <a
+              href="https://aistudio.google.com/app/apikey"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-blue-600 text-sm font-medium px-2 py-2 hover:translate-x-1 transition-all duration-200 no-underline"
+            >
+              Get yours
+              <span className="text-base">→</span>
+            </a>
+          </div>
           <input
             type="text"
             id="apiKeyInput"
@@ -223,9 +228,9 @@ function App() {
           />
           <button
             onClick={handleSaveApiKey}
-            className="w-[90%] text-white font-bold py-2 px-4 rounded transition duration-200"
+            className="btn w-[90%] text-white font-bold py-2 px-4 rounded transition duration-200"
           >
-            Save API Key
+            Save API Key 🔑
           </button>
           {message && (
             <div
