@@ -47,21 +47,25 @@ function extractHintsFromResponse(responseText) {
   return hints;
 }
 export const fetchCode = async (problem, userCode, lang, apiKey) => {
-  const message = `You are an expert competitive programmer.
-Here is a LeetCode problem:
-${problem}
+  const message = `You are an expert competitive programmer. Here is a LeetCode problem: ${problem}
 
-The user wants to solve it in ${lang}. This is the code the user has written so far:
-${userCode}
+The user wants to solve it in ${lang}. This is the code the user has written so far: ${userCode}
 
-Return a complete, working solution in ${lang} that solves the problem correctly.
-- Don't include any header Files. Just complete the given class or function.
-- Include only the source code.  
-- Add **brief inline comments** to explain logic where helpful.  
-- Do NOT add explanations outside the code.  
-- Do NOT wrap the code in Markdown (no triple backticks).  
-- Do NOT include any text before or after the code—just return the source code directly.
-`;
+CRITICAL FORMATTING REQUIREMENTS:
+- Return ONLY the source code, nothing else
+- NO markdown formatting 
+- NO triple backticks (\`\`\`)
+- NO explanations before or after the code
+- NO "Here's the solution:" or similar text
+- NO language identifiers like "java" or "python"
+- Start your response directly with the code
+
+Return a complete, working solution in ${lang} that solves the problem correctly:
+- Don't include any header files
+- Just complete the given class or function
+- Add brief inline comments to explain logic where helpful
+
+Your response should start immediately with the code and contain nothing else.`;
   try {
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
